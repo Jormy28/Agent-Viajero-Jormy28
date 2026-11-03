@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente Viajero · Fuerza Bruta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --glass: rgba(255,255,255,0.10);
+    --glass-strong: rgba(255,255,255,0.18);
+    --glass-border: rgba(255,255,255,0.28);
+    --ink: #ffffff;
+    --ink-dim: rgba(255,255,255,0.65);
+    --coral: #ff7a6e;
+    --violet: #8c6dfb;
+    --mint: #4dd6b3;
+    --gold: #ffd166;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; min-height:100%; }
+  body{ font-family:'Inter', sans-serif; background:#120e28; color:var(--ink); min-height:100vh; overflow-x:hidden; }
+  .blob{ position:fixed; border-radius:50%; filter:blur(110px); opacity:0.45; z-index:0; animation:drift 24s ease-in-out infinite alternate; }
+  .blob1{ width:520px; height:520px; background:var(--violet); top:-200px; left:-180px; }
+  .blob2{ width:460px; height:460px; background:var(--coral); bottom:-220px; right:-160px; animation-delay:-9s; }
+  .blob3{ width:360px; height:360px; background:var(--mint); top:30%; right:20%; animation-delay:-15s; }
+  @keyframes drift{ from{ transform:translate(0,0) scale(1);} to{ transform:translate(40px,-30px) scale(1.1);} }
+ 
+  header{ position:relative; z-index:2; padding:26px 32px 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand h1{ font-family:'Poppins'; font-size:21px; font-weight:800; margin:0; }
+  .brand span{ font-size:22px; }
+  .steps{ display:flex; gap:8px; flex-wrap:wrap; }
+  .step-pill{ font-family:'Poppins'; font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); color:var(--ink-dim); transition:all .25s ease; }
+  .step-pill.active{ background:linear-gradient(135deg,var(--coral),var(--violet)); color:#fff; border-color:transparent; }
+  .step-pill.done{ color:var(--mint); }
+ 
+  main{ position:relative; z-index:2; max-width:1180px; margin:0 auto; padding:10px 32px 60px; display:grid; grid-template-columns: 1fr 380px; gap:22px; }
+  @media (max-width:880px){ main{ grid-template-columns: 1fr; padding:10px 18px 50px; } header{ padding:22px 18px 10px; } }
+ 
+  .card{ background:var(--glass); border:1px solid var(--glass-border); border-radius:26px; backdrop-filter:blur(22px) saturate(160%); -webkit-backdrop-filter:blur(22px) saturate(160%); padding:20px; }
+  .graph-card{ min-height:520px; display:flex; flex-direction:column; }
+  .graph-hint{ font-size:13px; color:var(--ink-dim); margin:0 0 10px; min-height:18px; }
+  .graph-hint.warn{ color:#ffb3ab; }
+ 
+  /* ---------- BARRA DE HERRAMIENTAS (estilo GeoGebra) ---------- */
+  .toolbar{
+    display:flex; align-items:stretch; gap:4px; flex-wrap:wrap;
+    background:rgba(0,0,0,0.22); border:1px solid var(--glass-border); border-radius:18px;
+    padding:6px; margin-bottom:12px; transition:opacity .2s;
+  }
+  .toolbar.off .tools-edit{ opacity:0.35; pointer-events:none; }
+  .tool-btn{
+    font-family:'Inter'; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    min-width:58px; padding:7px 8px; border-radius:13px; border:1px solid transparent; background:transparent;
+    color:var(--ink-dim); cursor:pointer; font-size:10.5px; font-weight:600; transition:all .15s ease;
+  }
+  .tool-btn svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .tool-btn:hover{ background:var(--glass); color:var(--ink); }
+  .tool-btn.active{ background:linear-gradient(135deg,rgba(255,122,110,0.85),rgba(140,109,251,0.85)); color:#fff; }
+  .tool-btn.view.active{ background:var(--glass-strong); color:var(--gold); border-color:var(--glass-border); }
+  .tool-sep{ width:1px; background:var(--glass-border); margin:4px 4px; }
+  .tool-spacer{ flex:1; }
+ 
+  svg#svg-main{ width:100%; height:auto; touch-action:none; border-radius:16px; }
+  .edge-label{ font-size:11px; fill:#1a1a2e; font-weight:700; font-family:'Inter'; pointer-events:none; }
+ 
+  table.matrix{ width:100%; border-collapse:collapse; font-family:'Inter'; font-size:13px; }
+  table.matrix th, table.matrix td{ padding:8px 6px; text-align:center; border:1px solid rgba(255,255,255,0.12); }
+  table.matrix th{ color:var(--gold); font-weight:700; }
+  table.matrix td{ color:var(--ink-dim); }
+  table.matrix td.diag{ color:rgba(255,255,255,0.25); }
+ 
+  h2{ font-family:'Poppins'; font-size:18px; font-weight:700; margin:0 0 4px; }
+  h3{ font-family:'Poppins'; font-size:14px; font-weight:700; margin:18px 0 2px; }
+  p{ color:var(--ink-dim); font-size:13.5px; line-height:1.5; margin:6px 0 0; }
+ 
+  .btn{ font-family:'Poppins'; border:none; border-radius:16px; padding:13px 16px; font-size:14.5px; font-weight:600; color:var(--ink); cursor:pointer; width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .12s ease; }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{ background:linear-gradient(135deg,var(--coral),var(--violet)); box-shadow:0 10px 22px rgba(140,109,251,0.32); }
+  .btn-glass{ background:var(--glass-strong); border:1px solid var(--glass-border); }
+  .btn-sm{ padding:9px 12px; font-size:13px; border-radius:13px; }
+  .btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .btn-row{ display:flex; gap:8px; }
+  .btn-row .btn{ margin-top:10px; }
+ 
+  .stepper-row{ display:flex; align-items:center; justify-content:center; gap:16px; margin:10px 0 4px; }
+  .stepper-btn{ width:38px; height:38px; border-radius:50%; border:1px solid var(--glass-border); background:var(--glass-strong); color:var(--ink); font-size:18px; cursor:pointer; }
+  #n-display{ font-family:'Poppins'; font-size:28px; font-weight:800; width:44px; text-align:center; }
+  .seg{ display:flex; background:rgba(0,0,0,0.22); border-radius:13px; padding:3px; margin-top:8px; }
+  .seg button{ flex:1; font-family:'Poppins'; font-size:12.5px; font-weight:600; padding:8px; border:none; border-radius:10px; background:transparent; color:var(--ink-dim); cursor:pointer; }
+  .seg button.active{ background:var(--glass-strong); color:var(--ink); }
+ 
+  .banner{ border-radius:16px; padding:12px 14px; font-size:13px; margin-top:12px; line-height:1.45; }
+  .banner-warn{ background:rgba(255,122,110,0.16); border:1px solid rgba(255,122,110,0.4); color:#ffb3ab; }
+  .banner-ok{ background:rgba(77,214,179,0.16); border:1px solid rgba(77,214,179,0.4); color:#a6f3dd; }
+  .banner-sug{ background:rgba(255,209,102,0.12); border:1px solid rgba(255,209,102,0.45); color:#ffe3a1; }
+  .missing-list{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .missing-chip{ background:rgba(255,209,102,0.18); border:1px solid rgba(255,209,102,0.55); color:#ffe3a1; font-size:12px; font-weight:600; padding:5px 10px; border-radius:10px; font-family:'Inter'; cursor:pointer; }
+  .missing-chip:hover{ background:rgba(255,209,102,0.32); }
+ 
+  .stat-row{ display:flex; gap:10px; margin-top:14px; }
+  .stat{ flex:1; text-align:center; background:rgba(0,0,0,0.2); border-radius:14px; padding:10px 6px; }
+  .stat b{ display:block; font-family:'Poppins'; font-size:18px; }
+  .stat span{ font-size:10.5px; color:var(--ink-dim); }
+ 
+  .route-card{ background:rgba(0,0,0,0.2); border-radius:14px; padding:12px; margin-top:12px; }
+  .route-card b{ font-family:'Poppins'; font-size:15px; }
+  .route-card .cost{ color:var(--gold); font-weight:700; }
+ 
+  input[type=range]{ width:100%; margin-top:8px; accent-color:#8c6dfb; }
+ 
+  /* modal */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(10,8,24,0.55); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:60; }
+  .modal-overlay.open{ display:flex; }
+  .modal-card{ width:290px; background:rgba(30,25,55,0.9); border:1px solid var(--glass-border); border-radius:22px; padding:22px; backdrop-filter:blur(20px); text-align:center; animation:pop .18s ease; }
+  @keyframes pop{ from{ transform:scale(0.85); opacity:0;} to{ transform:scale(1); opacity:1;} }
+  .modal-card h3{ margin:0 0 4px; font-size:17px; }
+  .modal-card input{ width:100%; margin-top:14px; padding:12px; border-radius:12px; text-align:center; background:rgba(255,255,255,0.12); border:1px solid var(--glass-border); color:#fff; font-size:16px; outline:none; }
+ 
+  /* agente */
+  .agent-fab{ position:fixed; right:22px; bottom:22px; z-index:40; width:58px; height:58px; border-radius:50%; border:none; cursor:pointer; font-size:26px; background:linear-gradient(135deg,var(--coral),var(--violet)); box-shadow:0 12px 28px rgba(140,109,251,0.45); }
+  .agent-panel{ position:fixed; right:22px; bottom:92px; z-index:40; width:340px; max-width:calc(100vw - 36px); height:430px; max-height:70vh; display:none; flex-direction:column; background:rgba(26,21,50,0.92); border:1px solid var(--glass-border); border-radius:22px; backdrop-filter:blur(20px); overflow:hidden; }
+  .agent-panel.open{ display:flex; }
+  .agent-head{ padding:14px 16px; font-family:'Poppins'; font-weight:700; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; }
+  .agent-head button{ background:none; border:none; color:var(--ink-dim); font-size:18px; cursor:pointer; }
+  .agent-msgs{ flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .msg{ max-width:88%; padding:9px 12px; border-radius:14px; font-size:13px; line-height:1.45; white-space:pre-wrap; }
+  .msg.bot{ background:var(--glass-strong); align-self:flex-start; }
+  .msg.me{ background:linear-gradient(135deg,var(--coral),var(--violet)); align-self:flex-end; }
+  .agent-quick{ display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 8px; }
+  .agent-quick button{ font-size:11.5px; padding:5px 10px; border-radius:10px; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink); cursor:pointer; font-family:'Inter'; }
+  .agent-input{ display:flex; gap:6px; padding:10px; border-top:1px solid var(--glass-border); }
+  .agent-input input{ flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--glass-border); background:rgba(255,255,255,0.1); color:#fff; outline:none; font-size:13px; }
+  .agent-input button{ border:none; border-radius:12px; padding:0 14px; background:linear-gradient(135deg,var(--coral),var(--violet)); color:#fff; cursor:pointer; font-size:16px; }
+ 
+  ::-webkit-scrollbar{ width:5px; }
+  ::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.25); border-radius:5px; }
+</style>
+</head>
+<body>
+ 
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+ 
+<header>
+  <div class="brand"><span>🧭</span><h1>El Agente Viajero</h1></div>
+  <div class="steps">
+    <div class="step-pill" id="pill-construir">1 · Construir</div>
+    <div class="step-pill" id="pill-explorar">2 · Explorar</div>
+    <div class="step-pill" id="pill-final">3 · Resultado</div>
+  </div>
+</header>
+ 
+<main>
+  <!-- COLUMNA IZQUIERDA: barra de herramientas + grafo / matriz -->
+  <div class="card graph-card">
+ 
+    <div class="toolbar" id="toolbar">
+      <div class="tools-edit" style="display:flex; gap:4px; flex-wrap:wrap;">
+        <button class="tool-btn" data-tool="mover" onclick="setHerramienta('mover')" title="Mover (V): arrastra nodos, toca una ruta para editar su peso">
+          <svg viewBox="0 0 24 24"><path d="M5 3l12 8-5.5 1.5L9 18z"/></svg>Mover</button>
+        <button class="tool-btn" data-tool="nodo" onclick="setHerramienta('nodo')" title="Nodo (N): toca el lienzo para crear una ciudad">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 9v6M9 12h6"/></svg>Nodo</button>
+        <button class="tool-btn" data-tool="arista" onclick="setHerramienta('arista')" title="Ruta con peso (E): une dos nodos sin dirección">
+          <svg viewBox="0 0 24 24"><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="5" r="2.5"/><path d="M7 17L17 7"/></svg>Ruta</button>
+        <button class="tool-btn" data-tool="flecha" onclick="setHerramienta('flecha')" title="Ruta dirigida (F): de origen a destino">
+          <svg viewBox="0 0 24 24"><path d="M5 19L18 6"/><path d="M10 6h8v8"/></svg>Flecha</button>
+        <button class="tool-btn" data-tool="borrar" onclick="setHerramienta('borrar')" title="Borrar (B): quita un nodo o una ruta">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>Borrar</button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" onclick="deshacer()" title="Deshacer (Ctrl+Z)">
+          <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>Deshacer</button>
+        <button class="tool-btn" onclick="$('file-img').click()" title="Subir una imagen de un grafo">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>Imagen</button>
+      </div>
+      <div class="tool-spacer"></div>
+      <button class="tool-btn view active" id="tab-grafo" onclick="toggleVista('grafo')" title="Ver el grafo">
+        <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7l8 1M7 8l4 8M17 10l-4 6"/></svg>Grafo</button>
+      <button class="tool-btn view" id="tab-matriz" onclick="toggleVista('matriz')" title="Ver la matriz de pesos">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16M12 4v16"/></svg>Matriz</button>
+    </div>
+    <input type="file" id="file-img" accept="image/*" style="display:none" onchange="cargarImagen(this)">
+ 
+    <p class="graph-hint" id="graph-hint"></p>
+    <svg id="svg-main" viewBox="0 0 560 440"></svg>
+    <div id="matriz-wrap" style="display:none;"></div>
+  </div>
+ 
+  <!-- COLUMNA DERECHA: panel de control dinámico -->
+  <div class="card control-card" id="control-panel"></div>
+</main>
+ 
+<!-- MODAL para pesos -->
+<div class="modal-overlay" id="modal-peso">
+  <div class="modal-card">
+    <h3 id="modal-titulo">Ruta A – B</h3>
+    <p>Ingresa la distancia entre estas ciudades</p>
+    <input id="modal-input" type="number" min="1" placeholder="Ej. 45">
+    <div class="btn-row">
+      <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarArista()">Guardar</button>
+    </div>
+    <button class="btn btn-glass" id="btn-quitar" style="display:none;" onclick="quitarArista()">Quitar ruta</button>
+  </div>
+</div>
+ 
+<!-- AGENTE -->
+<button class="agent-fab" onclick="toggleAgente()" title="Agente asistente">🤖</button>
+<div class="agent-panel" id="agent-panel">
+  <div class="agent-head"><span>🤖 Asistente del viajero</span><button onclick="toggleAgente()">✕</button></div>
+  <div class="agent-msgs" id="agent-msgs"></div>
+  <div class="agent-quick">
+    <button onclick="enviarAgente('¿Hay ciclo Hamilton?')">¿Hay ciclo?</button>
+    <button onclick="enviarAgente('¿Qué me falta unir?')">¿Qué falta?</button>
+    <button onclick="enviarAgente('¿Cuál es la mejor ruta?')">Mejor ruta</button>
+    <button onclick="enviarAgente('Explícame dirigido vs no dirigido')">Dirigido</button>
+  </div>
+  <div class="agent-input">
+    <input id="agent-text" placeholder="Pregúntame algo del grafo…" onkeydown="if(event.key==='Enter')enviarAgente()">
+    <button onclick="enviarAgente()">➤</button>
+  </div>
+</div>
+ 
+<script>
+const INF = Infinity;
+const MAX_CONEXIONES = 3;
+const MAX_NODOS = 10, MIN_NODOS = 3;
+const W = 560, H = 440;
+const RADIO_NODO = 19;
+const MARGEN_RUTA = 12;
+const NS = 'http://www.w3.org/2000/svg';
+// Si algún día tienes un servidor con IA, pon aquí su URL (POST {mensaje, grafo} -> {respuesta}).
+// Si está vacío, el asistente responde con reglas locales (sin internet y sin claves).
+const AGENTE_URL = '';
+ 
+const $ = id => document.getElementById(id);
+const et = i => String.fromCharCode(65 + i);
+ 
+const COLORS = ['#ff7a6e','#8c6dfb','#4dd6b3','#ffd166','#5aa9ff','#ff6ec7','#a3e635','#f472b6','#38bdf8','#fb923c'];
+const ROUTE_COLORS = ['#ffd166','#fb923c','#4dd6b3','#5aa9ff','#ff6ec7','#a3e635','#8c6dfb','#38bdf8','#f472b6','#ff7a6e'];
+ 
+const HINTS = {
+  mover:  '✋ Arrastra los nodos para moverlos. Toca una ruta para editar su peso.',
+  nodo:   '⊕ Toca un espacio vacío del lienzo para crear una ciudad (máx. 10).',
+  arista: '╱ Toca dos ciudades para unirlas con una ruta sin dirección y ponerle peso.',
+  flecha: '➜ Toca la ciudad de origen y luego la de destino para crear una ruta dirigida.',
+  borrar: '🗑 Toca una ciudad o una ruta para eliminarla.'
+};
+ 
+// ---------- estado ----------
+let pos = [];            // [{x,y}] ; la letra de cada nodo es su índice (A, B, C…)
+let aristas = [];        // [{a,b,w,dir,est?}]
+let matriz = [];         // matriz[i][j] = costo de ir de i a j
+let fase = 'construir';
+let herramienta = 'nodo';
+let selNode = null;
+let pendiente = null;    // {a,b,dir}
+let sug = { estado:'pocos', lista:[] };
+let ciclos = [], exploreIndex = 0, mejorCiclo = null, mejorCosto = INF, autoplayTimer = null;
+let imagen = null;       // {el,x,y,w,h,opac,src}
+let nAuto = 6, autoDir = false;
+let historial = [];
+let drag = null;
+ 
+// ---------- utilidades de estado ----------
+function reconstruir(){
+  const n = pos.length;
+  matriz = Array.from({length:n}, (_,i)=>Array.from({length:n}, (_,j)=> i===j?0:INF));
+  aristas.forEach(e=>{ matriz[e.a][e.b] = e.w; if(!e.dir) matriz[e.b][e.a] = e.w; });
+}
+function sonVecinos(i,j){ return matriz[i][j]!==INF || matriz[j][i]!==INF; }
+function grado(i){
+  let g = 0;
+  for(let j=0;j<pos.length;j++) if(j!==i && sonVecinos(i,j)) g++;
+  return g;
+}
+function guardarHistorial(){
+  historial.push(JSON.stringify({pos, aristas}));
+  if(historial.length>60) historial.shift();
+}
+function deshacer(){
+  if(fase!=='construir' || !historial.length) return;
+  const s = JSON.parse(historial.pop());
+  pos = s.pos; aristas = s.aristas.map(e=>({...e, w: e.w}));
+  selNode = null;
+  actualizar();
+}
+ 
+function setPill(id){
+  const orden = ['construir','explorar','final'];
+  const idx = orden.indexOf(id);
+  orden.forEach((k,i)=>{
+    const el = $('pill-'+k);
+    el.classList.remove('active','done');
+    if(i<idx) el.classList.add('done');
+    if(i===idx) el.classList.add('active');
+  });
+}
+function setHint(texto, warn=false){
+  const h = $('graph-hint');
+  h.textContent = texto;
+  h.classList.toggle('warn', warn);
+}
+ 
+function setHerramienta(t){
+  herramienta = t; selNode = null;
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  const cur = {mover:'grab', nodo:'crosshair', arista:'pointer', flecha:'pointer', borrar:'not-allowed'}[t];
+  $('svg-main').style.cursor = cur;
+  if(fase==='construir'){ setHint(HINTS[t]); dibujarGrafo(); }
+}
+ 
+function toggleVista(cual){
+  $('tab-grafo').classList.toggle('active', cual==='grafo');
+  $('tab-matriz').classList.toggle('active', cual==='matriz');
+  $('svg-main').style.display = cual==='grafo' ? 'block' : 'none';
+  $('matriz-wrap').style.display = cual==='matriz' ? 'block' : 'none';
+  if(cual==='matriz') renderMatriz();
+}
+function renderMatriz(){
+  let html = '<table class="matrix"><tr><th></th>' + pos.map((_,i)=>`<th>${et(i)}</th>`).join('') + '</tr>';
+  pos.forEach((_,i)=>{
+    html += `<tr><th>${et(i)}</th>`;
+    pos.forEach((_,j)=>{
+      const v = matriz[i][j];
+      html += i===j ? `<td class="diag">–</td>` : `<td>${v===INF?'∞':v}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table><p>Fila = origen, columna = destino. En un grafo no dirigido la matriz es simétrica.</p>';
+  $('matriz-wrap').innerHTML = html;
+}
+ 
+// ---------- geometría ----------
+function distPuntoSegmento(p, a, b){
+  const dx = b.x-a.x, dy = b.y-a.y;
+  const l2 = dx*dx + dy*dy;
+  let t = l2 === 0 ? 0 : ((p.x-a.x)*dx + (p.y-a.y)*dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x-(a.x+t*dx), p.y-(a.y+t*dy));
+}
+function nodoBloqueante(i, j){
+  for(let k=0;k<pos.length;k++){
+    if(k===i || k===j) continue;
+    if(distPuntoSegmento(pos[k], pos[i], pos[j]) < RADIO_NODO + MARGEN_RUTA) return k;
+  }
+  return -1;
+}
+// forma de una ruta: recta, o curva si existe la ruta dirigida contraria
+function geom(a, b, dir){
+  const p1 = pos[a], p2 = pos[b];
+  let c = null;
+  if(dir && aristas.some(e=>e.dir && e.a===b && e.b===a)){
+    const dx = p2.x-p1.x, dy = p2.y-p1.y, L = Math.hypot(dx,dy) || 1;
+    c = { x:(p1.x+p2.x)/2 - dy/L*34, y:(p1.y+p2.y)/2 + dx/L*34 };
+  }
+  let ex = p2.x, ey = p2.y;
+  if(dir){
+    const rf = c || p1;
+    const dx = p2.x-rf.x, dy = p2.y-rf.y, L = Math.hypot(dx,dy) || 1;
+    ex -= dx/L*(RADIO_NODO+4); ey -= dy/L*(RADIO_NODO+4);
+  }
+  const at = t => c
+    ? { x:(1-t)*(1-t)*p1.x + 2*(1-t)*t*c.x + t*t*ex, y:(1-t)*(1-t)*p1.y + 2*(1-t)*t*c.y + t*t*ey }
+    : { x:p1.x+(ex-p1.x)*t, y:p1.y+(ey-p1.y)*t };
+  const d = c ? `M${p1.x},${p1.y} Q${c.x},${c.y} ${ex},${ey}` : `M${p1.x},${p1.y} L${ex},${ey}`;
+  return { d, at, curvo: !!c };
+}
+function marcador(defs, color){
+  const id = 'arr' + color.replace(/[^a-z0-9]/gi,'');
+  if(!defs.querySelector('#'+id)){
+    const m = document.createElementNS(NS,'marker');
+    m.setAttribute('id', id); m.setAttribute('viewBox','0 0 10 10');
+    m.setAttribute('refX','9'); m.setAttribute('refY','5');
+    m.setAttribute('markerUnits','userSpaceOnUse');
+    m.setAttribute('markerWidth','13'); m.setAttribute('markerHeight','13');
+    m.setAttribute('orient','auto');
+    const p = document.createElementNS(NS,'path');
+    p.setAttribute('d','M0,0 L10,5 L0,10 z'); p.setAttribute('fill', color);
+    m.appendChild(p); defs.appendChild(m);
+  }
+  return id;
+}
+ 
+function ptSvg(ev){
+  const svg = $('svg-main');
+  const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return { x:p.x, y:p.y };
+}
+function nodoEn(p){
+  let r = -1;
+  pos.forEach((q,i)=>{ if(Math.hypot(q.x-p.x, q.y-p.y) <= RADIO_NODO+4) r = i; });
+  return r;
+}
+function aristaEn(p){
+  let mejor = -1, md = 10;
+  aristas.forEach((e,k)=>{
+    const g = geom(e.a, e.b, e.dir);
+    for(let t=0;t<=1.001;t+=1/18){
+      const q = g.at(t), d = Math.hypot(q.x-p.x, q.y-p.y);
+      if(d < md){ md = d; mejor = k; }
+    }
+  });
+  return mejor;
+}
+ 
+// ---------- ciclos Hamilton ----------
+function buscarCiclos(soloUno){
+  const n = pos.length, resultado = [];
+  if(n < MIN_NODOS) return resultado;
+  const visitado = Array(n).fill(false), camino = [0];
+  visitado[0] = true;
+  function dfs(actual){
+    if(soloUno && resultado.length>0) return;
+    if(camino.length === n){
+      if(matriz[actual][0] !== INF) resultado.push([...camino, 0]);
+      return;
+    }
+    for(let sig=1; sig<n; sig++){
+      if(!visitado[sig] && matriz[actual][sig] !== INF){
+        visitado[sig] = true; camino.push(sig);
+        dfs(sig);
+        camino.pop(); visitado[sig] = false;
+        if(soloUno && resultado.length>0) return;
+      }
+    }
+  }
+  dfs(0);
+  return resultado;
+}
+function costoDeCiclo(c){
+  let s = 0;
+  for(let i=0;i<c.length-1;i++) s += matriz[c[i]][c[i+1]];
+  return s;
+}
+const etiquetaCiclo = c => c.map(et).join(' → ');
+ 
+// Sugerencias: menor cantidad de rutas por agregar para cerrar un ciclo,
+// respetando máx. 3 conexiones y sin pasar por encima de otra ciudad.
+function sugerir(){
+  const n = pos.length;
+  if(n < MIN_NODOS) return { estado:'pocos', lista:[] };
+  if(buscarCiclos(true).length) return { estado:'ok', lista:[] };
+ 
+  const gr = Array.from({length:n}, (_,i)=>grado(i));
+  const extra = Array(n).fill(0);
+  const bloq = Array.from({length:n}, (_,i)=>Array.from({length:n}, (_,j)=> i===j ? -1 : nodoBloqueante(i,j)));
+  const hayDir = aristas.some(e=>e.dir);
+  const falt = [], usado = Array(n).fill(false), camino = [0];
+  usado[0] = true;
+  let mejor = null;
+ 
+  function intento(a,b){
+    if(matriz[a][b] !== INF) return { need:false };
+    const par = sonVecinos(a,b);
+    if(!par){
+      if(gr[a]+extra[a] >= MAX_CONEXIONES || gr[b]+extra[b] >= MAX_CONEXIONES) return null;
+      if(bloq[a][b] !== -1) return null;
+    }
+    return { need:true, nuevo:!par };
+  }
+  function aplicar(a,b,r){ if(r.need){ falt.push([a,b]); if(r.nuevo){ extra[a]++; extra[b]++; } } }
+  function quitar(a,b,r){ if(r.need){ falt.pop(); if(r.nuevo){ extra[a]--; extra[b]--; } } }
+ 
+  function dfs(act){
+    if(mejor && falt.length >= mejor.length) return;
+    if(camino.length === n){
+      const r = intento(act, 0); if(!r) return;
+      aplicar(act, 0, r);
+      if(!mejor || falt.length < mejor.length) mejor = falt.map(x=>[...x]);
+      quitar(act, 0, r);
+      return;
+    }
+    for(let s=1;s<n;s++){
+      if(usado[s]) continue;
+      const r = intento(act, s); if(!r) continue;
+      aplicar(act, s, r); usado[s] = true; camino.push(s);
+      dfs(s);
+      camino.pop(); usado[s] = false; quitar(act, s, r);
+    }
+  }
+  dfs(0);
+  if(!mejor) return { estado:'imposible', lista:[] };
+  return { estado:'faltan', lista: mejor.map(([a,b])=>({a,b,dir:hayDir})) };
+}
+ 
+// ---------- editar el grafo ----------
+function agregarArista(a,b,w,dir){
+  const mismoPar = e => (e.a===a&&e.b===b) || (e.a===b&&e.b===a);
+  if(!dir) aristas = aristas.filter(e=>!mismoPar(e));
+  else aristas = aristas.filter(e=>!(!e.dir && mismoPar(e)) && !(e.dir && e.a===a && e.b===b));
+  aristas.push({a,b,w,dir});
+}
+function buscarAristaExacta(a,b,dir){
+  return aristas.findIndex(e => dir
+    ? (e.dir && e.a===a && e.b===b)
+    : (!e.dir && ((e.a===a&&e.b===b)||(e.a===b&&e.b===a))));
+}
+ 
+function colocarNodo(p){
+  if(pos.length >= MAX_NODOS){ setHint(`Máximo ${MAX_NODOS} ciudades.`, true); return; }
+  if(pos.some(q=>Math.hypot(q.x-p.x,q.y-p.y) < RADIO_NODO*2+14)){ setHint('Muy cerca de otra ciudad. Toca un espacio libre.', true); return; }
+  guardarHistorial();
+  pos.push({ x:Math.max(RADIO_NODO+4,Math.min(W-RADIO_NODO-4,p.x)), y:Math.max(RADIO_NODO+4,Math.min(H-RADIO_NODO-4,p.y)) });
+  actualizar();
+  setHint(`Ciudad ${et(pos.length-1)} creada. ${pos.length<MAX_NODOS ? 'Sigue tocando para crear más.' : 'Llegaste al máximo de ciudades.'}`);
+}
+function borrarNodo(i){
+  guardarHistorial();
+  pos.splice(i,1);
+  aristas = aristas.filter(e=>e.a!==i && e.b!==i).map(e=>({...e, a:e.a>i?e.a-1:e.a, b:e.b>i?e.b-1:e.b}));
+  selNode = null; actualizar();
+}
+function borrarArista(k){
+  guardarHistorial(); aristas.splice(k,1); actualizar();
+}
+ 
+function clickNodo(i){
+  const dir = herramienta === 'flecha';
+  if(selNode === null){
+    selNode = i; dibujarGrafo();
+    setHint(`${et(i)} seleccionado (${grado(i)}/${MAX_CONEXIONES} conexiones) → toca ${dir?'el destino':'otra ciudad'}.`);
+    return;
+  }
+  if(selNode === i){ selNode = null; dibujarGrafo(); setHint(HINTS[herramienta]); return; }
+  const a = selNode, b = i;
+  selNode = null;
+  if(!sonVecinos(a,b)){
+    if(grado(a) >= MAX_CONEXIONES){ dibujarGrafo(); setHint(`${et(a)} ya tiene ${MAX_CONEXIONES} conexiones. Quita una ruta de ${et(a)} para agregar otra.`, true); return; }
+    if(grado(b) >= MAX_CONEXIONES){ dibujarGrafo(); setHint(`${et(b)} ya tiene ${MAX_CONEXIONES} conexiones. Quita una ruta de ${et(b)} para agregar otra.`, true); return; }
+    const bl = nodoBloqueante(a,b);
+    if(bl !== -1){ dibujarGrafo(); setHint(`La ruta ${et(a)}–${et(b)} pasaría por encima de ${et(bl)}. Conecta primero con ${et(bl)} o mueve las ciudades.`, true); return; }
+  }
+  abrirModal(a,b,dir);
+}
+ 
+// ---------- modal ----------
+function abrirModal(a,b,dir){
+  pendiente = {a,b,dir};
+  const k = buscarAristaExacta(a,b,dir);
+  $('modal-titulo').textContent = dir ? `Flecha ${et(a)} → ${et(b)}` : `Ruta ${et(a)} – ${et(b)}`;
+  $('modal-input').value = k>=0 && !aristas[k].est ? aristas[k].w : '';
+  $('modal-input').style.borderColor = '';
+  $('btn-quitar').style.display = k>=0 ? 'block' : 'none';
+  $('modal-peso').classList.add('open');
+  setTimeout(()=>$('modal-input').focus(), 50);
+}
+function cerrarModal(){
+  $('modal-peso').classList.remove('open');
+  pendiente = null; selNode = null;
+  if(fase==='construir'){ dibujarGrafo(); setHint(HINTS[herramienta]); }
+}
+function guardarArista(){
+  const peso = parseInt($('modal-input').value);
+  if(!peso || peso<=0){ $('modal-input').style.borderColor = 'var(--coral)'; return; }
+  const {a,b,dir} = pendiente;
+  guardarHistorial();
+  agregarArista(a,b,peso,dir);
+  $('modal-peso').classList.remove('open');
+  pendiente = null; selNode = null;
+  actualizar(); setHint(HINTS[herramienta]);
+}
+function quitarArista(){
+  const {a,b,dir} = pendiente;
+  const k = buscarAristaExacta(a,b,dir);
+  if(k>=0){ guardarHistorial(); aristas.splice(k,1); }
+  $('modal-peso').classList.remove('open');
+  pendiente = null; selNode = null;
+  actualizar(); setHint(HINTS[herramienta]);
+}
+$('modal-input').addEventListener('keydown', ev=>{
+  if(ev.key==='Enter') guardarArista();
+  if(ev.key==='Escape') cerrarModal();
+});
+ 
+// ---------- interacción con el lienzo ----------
+const svgEl = $('svg-main');
+svgEl.addEventListener('pointerdown', ev=>{
+  if(fase !== 'construir') return;
+  const p = ptSvg(ev), i = nodoEn(p);
+  switch(herramienta){
+    case 'mover':
+      if(i>=0){
+        guardarHistorial();
+        drag = { i, moved:false, ox:p.x-pos[i].x, oy:p.y-pos[i].y };
+        try{ svgEl.setPointerCapture(ev.pointerId); }catch(e){}
+      } else {
+        const k = aristaEn(p);
+        if(k>=0){ const e = aristas[k]; abrirModal(e.a, e.b, e.dir); }
+      }
+      break;
+    case 'nodo': colocarNodo(p); break;
+    case 'arista':
+    case 'flecha':
+      if(i>=0) clickNodo(i);
+      else { selNode = null; dibujarGrafo(); setHint(HINTS[herramienta]); }
+      break;
+    case 'borrar':
+      if(i>=0) borrarNodo(i);
+      else { const k = aristaEn(p); if(k>=0) borrarArista(k); }
+      break;
+  }
+});
+svgEl.addEventListener('pointermove', ev=>{
+  if(!drag) return;
+  const p = ptSvg(ev);
+  pos[drag.i].x = Math.max(RADIO_NODO+4, Math.min(W-RADIO_NODO-4, p.x-drag.ox));
+  pos[drag.i].y = Math.max(RADIO_NODO+4, Math.min(H-RADIO_NODO-4, p.y-drag.oy));
+  drag.moved = true;
+  dibujarGrafo();
+});
+function soltar(){
+  if(!drag) return;
+  const movio = drag.moved; drag = null;
+  if(movio) actualizar(); else historial.pop();
+}
+svgEl.addEventListener('pointerup', soltar);
+svgEl.addEventListener('pointercancel', soltar);
+ 
+document.addEventListener('keydown', ev=>{
+  if(ev.target.tagName === 'INPUT') return;
+  if((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='z'){ ev.preventDefault(); deshacer(); return; }
+  if(fase!=='construir') return;
+  const mapa = { v:'mover', n:'nodo', e:'arista', f:'flecha', b:'borrar' };
+  if(mapa[ev.key.toLowerCase()]) setHerramienta(mapa[ev.key.toLowerCase()]);
+  if(ev.key==='Escape'){ selNode = null; dibujarGrafo(); }
+});
+ 
+// ---------- generación automática (siempre con ciclo Hamilton) ----------
+function layoutAleatorio(n){
+  const margen = 40;
+  let minDist = 112;
+  let res = [];
+  for(let intento=0; intento<60; intento++){
+    res = [];
+    let ok = true;
+    for(let k=0;k<n;k++){
+      let colocado = false;
+      for(let t=0;t<200;t++){
+        const x = margen + Math.random()*(W-2*margen), y = margen + Math.random()*(H-2*margen);
+        if(!res.some(p=>Math.hypot(p.x-x,p.y-y) < minDist)){ res.push({x,y}); colocado = true; break; }
+      }
+      if(!colocado){ ok = false; break; }
+    }
+    if(ok) return res;
+    if(intento % 10 === 9) minDist -= 6;
+  }
+  const cols = Math.ceil(Math.sqrt(n)), celda = (W-2*margen)/cols;
+  res = [];
+  for(let i=0;i<n;i++) res.push({
+    x: margen + (i%cols)*celda + celda/2 + (Math.random()-0.5)*celda*0.4,
+    y: margen + Math.floor(i/cols)*celda + celda/2 + (Math.random()-0.5)*celda*0.4
+  });
+  return res;
+}
+function ordenVecinoCercano(n){
+  const resto = Array.from({length:n}, (_,i)=>i);
+  let actual = resto.splice(Math.floor(Math.random()*n), 1)[0];
+  const orden = [actual];
+  while(resto.length){
+    const pa = pos[actual];
+    resto.sort((x,y)=> Math.hypot(pos[x].x-pa.x,pos[x].y-pa.y) - Math.hypot(pos[y].x-pa.x,pos[y].y-pa.y));
+    const idx = (resto.length>1 && Math.random()<0.3) ? 1 : 0;
+    actual = resto.splice(idx,1)[0];
+    orden.push(actual);
+  }
+  return orden;
+}
+function anilloLibre(orden){
+  const n = orden.length;
+  for(let k=0;k<n;k++) if(nodoBloqueante(orden[k], orden[(k+1)%n]) !== -1) return false;
+  return true;
+}
+const pesoAzar = () => 1 + Math.floor(Math.random()*100);
+ 
+function generarAuto(){
+  guardarHistorial();
+  const n = nAuto;
+  imagen = null;
+  pos = layoutAleatorio(n); aristas = [];
+  let orden = null;
+  for(let r=0; r<30 && !orden; r++){
+    for(let t=0;t<250;t++){
+      const cand = t<200 ? ordenVecinoCercano(n) : Array.from({length:n},(_,i)=>i).sort(()=>Math.random()-0.5);
+      if(anilloLibre(cand)){ orden = cand; break; }
+    }
+    if(!orden) pos = layoutAleatorio(n);
+  }
+  if(!orden) orden = ordenVecinoCercano(n);
+ 
+  const deg = Array(n).fill(0), par = new Set();
+  const key = (a,b)=> a<b ? a+'-'+b : b+'-'+a;
+  for(let k=0;k<n;k++){
+    const a = orden[k], b = orden[(k+1)%n];
+    aristas.push({a,b,w:pesoAzar(),dir:autoDir});
+    deg[a]++; deg[b]++; par.add(key(a,b));
+  }
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    if(!par.has(key(i,j)) && deg[i]<MAX_CONEXIONES && deg[j]<MAX_CONEXIONES && nodoBloqueante(i,j)===-1 && Math.random()<0.4){
+      const inv = Math.random()<0.5;
+      aristas.push(autoDir ? {a:inv?j:i, b:inv?i:j, w:pesoAzar(), dir:true} : {a:i,b:j,w:pesoAzar(),dir:false});
+      deg[i]++; deg[j]++; par.add(key(i,j));
+    }
+  }
+  selNode = null;
+  actualizar();
+  setHint('Grafo automático listo: siempre tiene al menos un ciclo Hamilton.');
+}
+function reubicarNodos(){
+  guardarHistorial();
+  pos = layoutAleatorio(pos.length);
+  actualizar();
+}
+function limpiarTodo(){
+  guardarHistorial();
+  pos = []; aristas = []; imagen = null; selNode = null;
+  actualizar(); setHint(HINTS[herramienta]);
+}
+function aplicarSugerencia(k){
+  const s = sug.lista[k];
+  selNode = null;
+  abrirModal(s.a, s.b, s.dir);
+}
+function aplicarTodasSugerencias(){
+  guardarHistorial();
+  sug.lista.forEach(s=>agregarArista(s.a, s.b, pesoAzar(), s.dir));
+  actualizar();
+}
+function cambiarNAuto(d){ nAuto = Math.min(10, Math.max(5, nAuto+d)); $('n-display').textContent = nAuto; }
+function setAutoDir(v){ autoDir = v; panelConstruir(); }
+ 
+// ---------- actualizar todo ----------
+function actualizar(){
+  reconstruir();
+  $('toolbar').classList.toggle('off', fase!=='construir');
+  if(fase==='construir'){
+    sug = sugerir();
+    dibujarGrafo();
+    panelConstruir();
+  }
+  if($('matriz-wrap').style.display==='block') renderMatriz();
+}
+ 
+// ---------- PANEL: CONSTRUIR ----------
+function panelConstruir(){
+  const n = pos.length, m = aristas.length;
+  let tipo = '–';
+  if(m){ const d = aristas.filter(e=>e.dir).length; tipo = d===0 ? 'No dir.' : d===m ? 'Dirigido' : 'Mixto'; }
+ 
+  let bloque = '';
+  if(sug.estado === 'pocos'){
+    bloque = `<div class="banner banner-warn">Crea al menos ${MIN_NODOS} ciudades con la herramienta <b>Nodo</b> para armar un ciclo.</div>`;
+  } else if(sug.estado === 'ok'){
+    bloque = `<div class="banner banner-ok">✅ ¡Ya existe un ciclo Hamilton! Puedes explorar las rutas.</div>`;
+  } else if(sug.estado === 'faltan'){
+    bloque = `<div class="banner banner-sug"><b>💡 Para cerrar un ciclo Hamilton une:</b>
+      <div class="missing-list">${sug.lista.map((s,k)=>`<button class="missing-chip" onclick="aplicarSugerencia(${k})">${et(s.a)} ${s.dir?'→':'–'} ${et(s.b)}</button>`).join('')}</div>
+      <div style="margin-top:8px;font-size:12px;opacity:.85">Se ven punteadas en el mapa. Toca una para ponerle peso.</div></div>
+      <button class="btn btn-glass btn-sm" onclick="aplicarTodasSugerencias()">✨ Agregar todas (pesos al azar)</button>`;
+  } else {
+    bloque = `<div class="banner banner-warn">Con el máximo de ${MAX_CONEXIONES} conexiones por ciudad y las rutas actuales no se puede cerrar el circuito. Quita o cambia alguna ruta.</div>`;
+  }
+ 
+  const bloqueImg = imagen ? `
+    <h3>🖼 Imagen cargada</h3>
+    <p>Calca los nodos y rutas sobre la imagen, o intenta la detección automática.</p>
+    <input type="range" min="10" max="100" value="${Math.round(imagen.opac*100)}" oninput="cambiarOpacidad(this.value)">
+    <div class="btn-row">
+      <button class="btn btn-glass btn-sm" onclick="detectarImagen()">🔍 Detectar (beta)</button>
+      <button class="btn btn-glass btn-sm" onclick="quitarImagen()">Quitar</button>
+    </div>` : '';
+ 
+  $('control-panel').innerHTML = `
+    <h2>Construye tu grafo</h2>
+    <p>Usa la barra de herramientas. Cada ciudad admite <b>máximo ${MAX_CONEXIONES} conexiones</b>. Con <b>Flecha</b> haces rutas dirigidas.</p>
+    <div class="stat-row">
+      <div class="stat"><b>${n}</b><span>ciudades</span></div>
+      <div class="stat"><b>${m}</b><span>rutas</span></div>
+      <div class="stat"><b>${tipo}</b><span>tipo</span></div>
+    </div>
+    ${bloque}
+    <button class="btn btn-primary" ${sug.estado==='ok'?'':'disabled'} onclick="prepararExplorar()">Explorar rutas válidas ►</button>
+ 
+    <h3>🎲 Modo automático</h3>
+    <p>Crea un mapa que siempre cumple Hamilton.</p>
+    <div class="stepper-row">
+      <button class="stepper-btn" onclick="cambiarNAuto(-1)">−</button>
+      <div id="n-display">${nAuto}</div>
+      <button class="stepper-btn" onclick="cambiarNAuto(1)">+</button>
+    </div>
+    <div class="seg">
+      <button class="${autoDir?'':'active'}" onclick="setAutoDir(false)">No dirigido</button>
+      <button class="${autoDir?'active':''}" onclick="setAutoDir(true)">Dirigido</button>
+    </div>
+    <button class="btn btn-glass" onclick="generarAuto()">🎲 Generar grafo automático</button>
+    <div class="btn-row">
+      <button class="btn btn-glass btn-sm" onclick="reubicarNodos()" ${n?'':'disabled'}>📍 Reubicar</button>
+      <button class="btn btn-glass btn-sm" onclick="limpiarTodo()" ${n?'':'disabled'}>🧹 Limpiar</button>
+    </div>
+    ${bloqueImg}
+  `;
+}
+ 
+// ---------- EXPLORAR ----------
+function prepararExplorar(){
+  ciclos = buscarCiclos(false);
+  exploreIndex = 0; mejorCiclo = null; mejorCosto = INF;
+  fase = 'explorar'; setPill('explorar'); selNode = null;
+  $('toolbar').classList.add('off');
+  setHint(`${ciclos.length} ruta(s) cerrada(s) posibles. Vamos a compararlas.`);
+  dibujarGrafo();
+  const sinPeso = aristas.filter(e=>e.est).length;
+  $('control-panel').innerHTML = `
+    <h2>Explorando rutas válidas</h2>
+    <p>Cada ruta cerrada se traza sobre el mapa y comparamos su costo total.</p>
+    ${sinPeso ? `<div class="banner banner-warn">${sinPeso} ruta(s) detectadas de la imagen no tienen peso real: cuentan como 1.</div>` : ''}
+    <div class="stat-row">
+      <div class="stat"><b id="stat-progreso">0/${ciclos.length}</b><span>evaluadas</span></div>
+      <div class="stat"><b id="stat-mejor">–</b><span>mejor costo</span></div>
+    </div>
+    <div class="route-card" id="route-card" style="display:none;">
+      <b id="route-path"></b><br>
+      <span>Costo: <span class="cost" id="route-cost"></span></span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-glass" id="btn-auto" onclick="toggleAutoplay()">▶ Auto</button>
+      <button class="btn btn-primary" id="btn-siguiente" onclick="siguienteRuta()">Siguiente ruta ►</button>
+    </div>
+    <button class="btn btn-glass btn-sm" onclick="volverEditar()">◄ Volver a editar</button>
+  `;
+}
+function volverEditar(){
+  pararAutoplay();
+  fase = 'construir'; setPill('construir');
+  actualizar(); setHint(HINTS[herramienta]);
+}
+function siguienteRuta(){
+  if(exploreIndex >= ciclos.length){ mostrarFinal(); return; }
+  const ciclo = ciclos[exploreIndex];
+  const costo = costoDeCiclo(ciclo);
+  const esMejor = costo < mejorCosto;
+  if(esMejor){ mejorCosto = costo; mejorCiclo = ciclo; }
+  const colorRuta = ROUTE_COLORS[exploreIndex % ROUTE_COLORS.length];
+  animarCiclo(ciclo, colorRuta);
+  $('route-card').style.display = 'block';
+  $('route-path').innerHTML = `<span style="color:${colorRuta}">${etiquetaCiclo(ciclo)}</span>`;
+  $('route-cost').textContent = costo + (esMejor ? ' ★ ¡nuevo mejor!' : '');
+  $('stat-progreso').textContent = `${exploreIndex+1}/${ciclos.length}`;
+  $('stat-mejor').textContent = mejorCosto;
+  exploreIndex++;
+  if(exploreIndex >= ciclos.length){
+    $('btn-siguiente').textContent = 'Ver resultado final ►';
+    $('btn-auto').disabled = true;
+    pararAutoplay();
+  }
+}
+function toggleAutoplay(){
+  if(autoplayTimer){ pararAutoplay(); return; }
+  $('btn-auto').textContent = '⏸ Pausar';
+  autoplayTimer = setInterval(()=>{
+    if(exploreIndex >= ciclos.length){ pararAutoplay(); return; }
+    siguienteRuta();
+  }, 1100);
+}
+function pararAutoplay(){
+  clearInterval(autoplayTimer); autoplayTimer = null;
+  const b = $('btn-auto'); if(b) b.textContent = '▶ Auto';
+}
+ 
+// ---------- FINAL ----------
+function ciclosUnicos(){
+  const keys = new Set(ciclos.map(c=>c.join(',')));
+  let u = 0;
+  ciclos.forEach(c=>{
+    const rev = [...c].reverse();
+    const kr = rev.join(','), kc = c.join(',');
+    if(kr!==kc && keys.has(kr) && costoDeCiclo(rev)===costoDeCiclo(c)){ if(kc<kr) u++; }
+    else u++;
+  });
+  return u;
+}
+function mostrarFinal(){
+  fase = 'final'; setPill('final'); pararAutoplay();
+  setHint('Esta es la ruta más corta posible para tu mapa.');
+  dibujarGrafo();
+  animarCiclo(mejorCiclo, '#ff7a6e', true);
+  $('control-panel').innerHTML = `
+    <h2>🏁 Ruta óptima encontrada</h2>
+    <div class="route-card"><b>${etiquetaCiclo(mejorCiclo)}</b></div>
+    <div class="stat-row">
+      <div class="stat"><b>${mejorCosto}</b><span>costo mínimo</span></div>
+      <div class="stat"><b>${ciclos.length}</b><span>rutas válidas</span></div>
+      <div class="stat"><b>${ciclosUnicos()}</b><span>únicas</span></div>
+    </div>
+    <button class="btn btn-glass" onclick="volverEditar()">◄ Volver a editar</button>
+    <button class="btn btn-primary" onclick="reiniciar()">Jugar de nuevo 🔁</button>
+  `;
+}
+function reiniciar(){
+  pararAutoplay();
+  pos = []; aristas = []; imagen = null; historial = []; selNode = null;
+  fase = 'construir'; setPill('construir');
+  setHerramienta('nodo');
+  actualizar(); setHint(HINTS[herramienta]);
+}
+ 
+// ---------- DIBUJO ----------
+function dibujarGrafo(){
+  const svg = $('svg-main');
+  svg.innerHTML = '';
+  const defs = document.createElementNS(NS,'defs'); svg.appendChild(defs);
+ 
+  if(imagen){
+    const im = document.createElementNS(NS,'image');
+    im.setAttribute('href', imagen.src);
+    im.setAttribute('x', imagen.x); im.setAttribute('y', imagen.y);
+    im.setAttribute('width', imagen.w); im.setAttribute('height', imagen.h);
+    im.setAttribute('opacity', imagen.opac);
+    im.setAttribute('id','img-fondo');
+    svg.appendChild(im);
+  }
+  if(!pos.length && !imagen){
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x', W/2); t.setAttribute('y', H/2); t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','rgba(255,255,255,0.35)'); t.setAttribute('font-size','15'); t.setAttribute('font-family','Inter');
+    t.textContent = fase==='construir' ? 'Elige “Nodo” y toca aquí para crear ciudades' : '';
+    svg.appendChild(t);
+  }
+ 
+  // 1) aristas base
+  const mBase = marcador(defs, 'rgba(255,255,255,0.75)');
+  aristas.forEach(e=>{
+    const g = geom(e.a, e.b, e.dir);
+    const path = document.createElementNS(NS,'path');
+    path.setAttribute('d', g.d); path.setAttribute('fill','none');
+    path.setAttribute('stroke','rgba(255,255,255,0.38)'); path.setAttribute('stroke-width','2');
+    if(e.dir) path.setAttribute('marker-end', `url(#${mBase})`);
+    svg.appendChild(path);
+  });
+ 
+  // 2) sugerencias (punteadas)
+  if(fase==='construir' && sug.estado==='faltan'){
+    const mGold = marcador(defs, '#ffd166');
+    sug.lista.forEach(s=>{
+      const g = geom(s.a, s.b, s.dir);
+      const path = document.createElementNS(NS,'path');
+      path.setAttribute('d', g.d); path.setAttribute('fill','none');
+      path.setAttribute('stroke','#ffd166'); path.setAttribute('stroke-width','2.5');
+      path.setAttribute('stroke-dasharray','6 6'); path.setAttribute('opacity','0.9');
+      if(s.dir) path.setAttribute('marker-end', `url(#${mGold})`);
+      svg.appendChild(path);
+    });
+  }
+ 
+  // 3) capa de rutas resaltadas
+  const routeLayer = document.createElementNS(NS,'g');
+  routeLayer.setAttribute('id','route-layer');
+  svg.appendChild(routeLayer);
+ 
+  // 4) etiquetas de peso
+  const colocadas = [];
+  const posiblesT = [0.5, 0.4, 0.6, 0.33, 0.67, 0.25, 0.75];
+  aristas.forEach(e=>{
+    const g = geom(e.a, e.b, e.dir);
+    let mejor = null, mejorP = Infinity;
+    for(const t of posiblesT){
+      const q = g.at(t);
+      let puntaje = 0;
+      pos.forEach(nd=>{
+        const d = Math.hypot(nd.x-q.x, nd.y-q.y);
+        if(d < RADIO_NODO+15) puntaje += (RADIO_NODO+15-d)*3;
+      });
+      colocadas.forEach(c=>{
+        const d = Math.hypot(c.x-q.x, c.y-q.y);
+        if(d < 30) puntaje += (30-d)*3;
+      });
+      if(puntaje < mejorP){ mejorP = puntaje; mejor = q; }
+      if(puntaje === 0) break;
+    }
+    colocadas.push(mejor);
+    const bg = document.createElementNS(NS,'circle');
+    bg.setAttribute('cx',mejor.x); bg.setAttribute('cy',mejor.y); bg.setAttribute('r',12);
+    bg.setAttribute('fill', e.est ? '#ffe3a1' : '#fff');
+    svg.appendChild(bg);
+    const txt = document.createElementNS(NS,'text');
+    txt.setAttribute('x',mejor.x); txt.setAttribute('y',mejor.y+4); txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('class','edge-label'); txt.textContent = e.est ? '?' : e.w;
+    svg.appendChild(txt);
+  });
+ 
+  // 5) nodos
+  pos.forEach((p,i)=>{
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r',RADIO_NODO);
+    c.setAttribute('fill', COLORS[i % COLORS.length]);
+    c.setAttribute('stroke', selNode===i ? '#ffd166' : 'white');
+    c.setAttribute('stroke-width', selNode===i ? '4' : '2');
+    c.style.filter = 'drop-shadow(0 4px 10px rgba(0,0,0,0.4))';
+    svg.appendChild(c);
+    const t = document.createElementNS(NS,'text');
+    t.setAttribute('x',p.x); t.setAttribute('y',p.y+5); t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','white'); t.setAttribute('font-weight','700');
+    t.setAttribute('font-family','Poppins'); t.setAttribute('font-size','14');
+    t.setAttribute('pointer-events','none');
+    t.textContent = et(i);
+    svg.appendChild(t);
+  });
+}
+ 
+function animarCiclo(ciclo, color, grueso=false){
+  const layer = $('route-layer');
+  if(!layer) return;
+  const defs = $('svg-main').querySelector('defs');
+  const mid = marcador(defs, color);
+  layer.innerHTML = '';
+  for(let i=0;i<ciclo.length-1;i++){
+    const a = ciclo[i], b = ciclo[i+1];
+    const dirSeg = !aristas.some(e=>!e.dir && ((e.a===a&&e.b===b)||(e.a===b&&e.b===a)));
+    const g = geom(a, b, dirSeg);
+    const path = document.createElementNS(NS,'path');
+    path.setAttribute('d', g.d); path.setAttribute('fill','none');
+    path.setAttribute('stroke', color); path.setAttribute('stroke-width', grueso ? '5' : '4');
+    path.setAttribute('stroke-linecap','round');
+    layer.appendChild(path);
+    const largo = path.getTotalLength();
+    path.style.strokeDasharray = largo;
+    path.style.strokeDashoffset = largo;
+    path.style.transition = 'stroke-dashoffset .35s ease';
+    setTimeout(()=>{ path.style.strokeDashoffset = '0'; }, 40 + i*160);
+    if(dirSeg) setTimeout(()=>path.setAttribute('marker-end', `url(#${mid})`), 40 + i*160 + 330);
+ 
+    setTimeout(()=>{
+      const p = pos[b];
+      const pulse = document.createElementNS(NS,'circle');
+      pulse.setAttribute('cx',p.x); pulse.setAttribute('cy',p.y); pulse.setAttribute('r',RADIO_NODO);
+      pulse.setAttribute('fill','none'); pulse.setAttribute('stroke',color); pulse.setAttribute('stroke-width','3');
+      pulse.style.opacity='0.9'; pulse.style.transition='all .5s ease';
+      layer.appendChild(pulse);
+      requestAnimationFrame(()=>{ pulse.setAttribute('r','30'); pulse.style.opacity='0'; });
+      setTimeout(()=>pulse.remove(), 550);
+    }, 40 + i*160 + 200);
+  }
+}
+ 
+// =====================================================================
+//                         IMAGEN → GRAFO
+// =====================================================================
+function cargarImagen(input){
+  const f = input.files && input.files[0];
+  input.value = '';
+  if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const el = new Image();
+    el.onload = () => {
+      const s = Math.min(W/el.width, H/el.height);
+      const w = el.width*s, h = el.height*s;
+      guardarHistorial();
+      imagen = { el, src: rd.result, x:(W-w)/2, y:(H-h)/2, w, h, opac:0.6 };
+      pos = []; aristas = []; selNode = null;
+      if(fase!=='construir'){ fase='construir'; setPill('construir'); pararAutoplay(); }
+      toggleVista('grafo');
+      actualizar();
+      setHint('Imagen cargada. Pulsa “Detectar (beta)” o calca los nodos y rutas con las herramientas.');
+    };
+    el.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function cambiarOpacidad(v){
+  if(!imagen) return;
+  imagen.opac = v/100;
+  const im = $('img-fondo'); if(im) im.setAttribute('opacity', imagen.opac);
+}
+function quitarImagen(){ imagen = null; actualizar(); setHint(HINTS[herramienta]); }
+ 
+function detectarImagen(){
+  if(!imagen) return;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d', {willReadFrequently:true});
+  cx.fillStyle = '#fff'; cx.fillRect(0,0,W,H);
+  cx.drawImage(imagen.el, imagen.x, imagen.y, imagen.w, imagen.h);
+  const d = cx.getImageData(0,0,W,H).data, N = W*H;
+  const x0 = Math.floor(imagen.x), x1 = Math.ceil(imagen.x+imagen.w), y0 = Math.floor(imagen.y), y1 = Math.ceil(imagen.y+imagen.h);
+  const dentro = (x,y)=> x>=x0 && x<x1 && y>=y0 && y<y1;
+ 
+  // color de fondo = el más frecuente
+  const bins = new Uint32Array(4096);
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){
+    const p = (y*W+x)*4;
+    bins[((d[p]>>4)<<8)|((d[p+1]>>4)<<4)|(d[p+2]>>4)]++;
+  }
+  let bi = 0; for(let k=1;k<4096;k++) if(bins[k]>bins[bi]) bi = k;
+  const br = ((bi>>8)&15)*16+8, bg = ((bi>>4)&15)*16+8, bb = (bi&15)*16+8;
+ 
+  const ink = new Uint8Array(N);
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){
+    const p = y*W+x;
+    ink[p] = (Math.abs(d[p*4]-br)+Math.abs(d[p*4+1]-bg)+Math.abs(d[p*4+2]-bb)) > 90 ? 1 : 0;
+  }
+ 
+  function erosionar(m, r){
+    const t = new Uint8Array(N), o = new Uint8Array(N);
+    for(let y=0;y<H;y++){
+      const L = new Int16Array(W), Rr = new Int16Array(W);
+      for(let x=0;x<W;x++) L[x] = m[y*W+x] ? (x?L[x-1]:0)+1 : 0;
+      for(let x=W-1;x>=0;x--) Rr[x] = m[y*W+x] ? (x<W-1?Rr[x+1]:0)+1 : 0;
+      for(let x=0;x<W;x++) t[y*W+x] = (L[x]>r && Rr[x]>r) ? 1 : 0;
+    }
+    for(let x=0;x<W;x++){
+      const L = new Int16Array(H), Rr = new Int16Array(H);
+      for(let y=0;y<H;y++) L[y] = t[y*W+x] ? (y?L[y-1]:0)+1 : 0;
+      for(let y=H-1;y>=0;y--) Rr[y] = t[y*W+x] ? (y<H-1?Rr[y+1]:0)+1 : 0;
+      for(let y=0;y<H;y++) o[y*W+x] = (L[y]>r && Rr[y]>r) ? 1 : 0;
+    }
+    return o;
+  }
+  function componentes(m){
+    const vis = new Uint8Array(N), q = new Int32Array(N), res = [];
+    for(let s=0;s<N;s++){
+      if(!m[s] || vis[s]) continue;
+      let h=0, t=0; q[t++] = s; vis[s] = 1;
+      let area=0, sx=0, sy=0, mnx=W, mxx=0, mny=H, mxy=0;
+      while(h<t){
+        const p = q[h++], x = p%W, y = (p-x)/W;
+        area++; sx+=x; sy+=y;
+        if(x<mnx)mnx=x; if(x>mxx)mxx=x; if(y<mny)mny=y; if(y>mxy)mxy=y;
+        if(x>0   && m[p-1] && !vis[p-1]){ vis[p-1]=1; q[t++]=p-1; }
+        if(x<W-1 && m[p+1] && !vis[p+1]){ vis[p+1]=1; q[t++]=p+1; }
+        if(y>0   && m[p-W] && !vis[p-W]){ vis[p-W]=1; q[t++]=p-W; }
+        if(y<H-1 && m[p+W] && !vis[p+W]){ vis[p+W]=1; q[t++]=p+W; }
+      }
+      res.push({area, cx:sx/area, cy:sy/area, w:mxx-mnx+1, h:mxy-mny+1});
+    }
+    return res;
+  }
+ 
+  const cand = [];
+  // A) círculos rellenos: la erosión borra las líneas finas y deja los discos
+  const re = 4;
+  componentes(erosionar(ink, re)).forEach(c=>{
+    const asp = c.w/c.h, fill = c.area/(c.w*c.h);
+    const r = Math.sqrt(c.area/Math.PI) + re;
+    if(asp>0.7 && asp<1.43 && fill>0.6 && fill<0.95 && r>=8 && r<=48) cand.push({x:c.cx, y:c.cy, r});
+  });
+  // B) círculos huecos: zonas de fondo encerradas por un anillo
+  const fuera = new Uint8Array(N), stack = [];
+  for(let x=0;x<W;x++){ stack.push(x, (H-1)*W+x); }
+  for(let y=0;y<H;y++){ stack.push(y*W, y*W+W-1); }
+  while(stack.length){
+    const p = stack.pop();
+    if(fuera[p] || ink[p]) continue;
+    fuera[p] = 1;
+    const x = p%W, y = (p-x)/W;
+    if(x>0) stack.push(p-1); if(x<W-1) stack.push(p+1);
+    if(y>0) stack.push(p-W); if(y<H-1) stack.push(p+W);
+  }
+  const huecos = new Uint8Array(N);
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){ const p=y*W+x; if(!ink[p] && !fuera[p]) huecos[p]=1; }
+  componentes(huecos).forEach(c=>{
+    const asp = c.w/c.h, fill = c.area/(c.w*c.h);
+    const r = Math.sqrt(c.area/Math.PI) + 3;
+    if(c.area>=150 && c.area<=6000 && asp>0.75 && asp<1.33 && fill>0.55 && fill<0.92) cand.push({x:c.cx, y:c.cy, r});
+  });
+ 
+  cand.sort((a,b)=>b.r-a.r);
+  const nodosDet = [];
+  cand.forEach(c=>{ if(!nodosDet.some(q=>Math.hypot(q.x-c.x,q.y-c.y) < 20)) nodosDet.push(c); });
+  let recortado = false;
+  if(nodosDet.length > MAX_NODOS){ nodosDet.length = MAX_NODOS; recortado = true; }
+  nodosDet.sort((a,b)=>a.x-b.x);
+ 
+  if(nodosDet.length < MIN_NODOS){
+    setHint('No pude detectar suficientes nodos en la imagen. Calca los nodos y rutas a mano sobre ella.', true);
+    return;
+  }
+ 
+  // aristas: tramo de “tinta” continuo entre cada par de nodos
+  const hayTinta = (x,y)=>{
+    x = Math.round(x); y = Math.round(y);
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      const xx = x+dx, yy = y+dy;
+      if(xx>=0&&xx<W&&yy>=0&&yy<H&&ink[yy*W+xx]) return true;
+    }
+    return false;
+  };
+  const ancho = (cx_,cy_,ux,uy)=>{
+    let c = 0; const px = -uy, py = ux;
+    for(let k=-9;k<=9;k++){
+      const x = Math.round(cx_+px*k), y = Math.round(cy_+py*k);
+      if(x>=0&&x<W&&y>=0&&y<H&&ink[y*W+x]) c++;
+    }
+    return c;
+  };
+  const nuevas = [];
+  for(let i=0;i<nodosDet.length;i++) for(let j=i+1;j<nodosDet.length;j++){
+    const A = nodosDet[i], B = nodosDet[j];
+    const L = Math.hypot(B.x-A.x, B.y-A.y);
+    const ini = A.r+3, fin = L-(B.r+3);
+    if(fin-ini < 8) continue;
+    const ux = (B.x-A.x)/L, uy = (B.y-A.y)/L;
+    let total=0, con=0, gap=0, maxGap=0;
+    for(let s=ini; s<=fin; s+=2){
+      total++;
+      if(hayTinta(A.x+ux*s, A.y+uy*s)){ con++; gap=0; } else { gap+=2; if(gap>maxGap) maxGap=gap; }
+    }
+    if(con/total < 0.72 || maxGap > 45) continue;
+    // ¿pasa por encima de otro nodo?
+    const tapa = nodosDet.some((K,k)=> k!==i && k!==j && distPuntoSegmento(K, A, B) < K.r+4);
+    if(tapa) continue;
+    // flecha: el extremo con la “cabeza” más ancha
+    const wB = ancho(B.x-ux*(B.r+8), B.y-uy*(B.r+8), ux, uy);
+    const wA = ancho(A.x+ux*(A.r+8), A.y+uy*(A.r+8), ux, uy);
+    let dir = false, a = i, b = j;
+    if(Math.max(wA,wB) >= 6 && Math.abs(wA-wB) >= 3){ dir = true; if(wA > wB){ a = j; b = i; } }
+    nuevas.push({a, b, w:1, dir, est:true});
+  }
+ 
+  guardarHistorial();
+  pos = nodosDet.map(c=>({x:c.x, y:c.y}));
+  aristas = nuevas;
+  selNode = null;
+  actualizar();
+  const nd = nuevas.filter(e=>e.dir).length;
+  setHint(`Detecté ${pos.length} nodos y ${nuevas.length} rutas${nd?` (${nd} con flecha)`:''}${recortado?' (se limitó a 10 nodos)':''}. Revisa y corrige; toca cada ruta con ✋ para poner su peso (“?” = sin peso).`);
+}
+ 
+// =====================================================================
+//                             AGENTE
+// =====================================================================
+function toggleAgente(){
+  const p = $('agent-panel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open') && !$('agent-msgs').children.length){
+    agregarMsg('bot', '¡Hola! Soy tu asistente del Agente Viajero 🧭\nPuedo decirte si hay ciclo Hamilton, qué rutas unir, cuál es la mejor ruta y explicarte conceptos. Pregúntame o usa los botones.');
+  }
+}
+function agregarMsg(quien, texto){
+  const m = document.createElement('div');
+  m.className = 'msg ' + quien; m.textContent = texto;
+  $('agent-msgs').appendChild(m);
+  $('agent-msgs').scrollTop = 1e9;
+}
+function estadoGrafo(){
+  return { ciudades: pos.length, rutas: aristas.map(e=>({de:et(e.a), a:et(e.b), peso:e.w, dirigida:e.dir})) };
+}
+function mejorRutaActual(){
+  reconstruir();
+  const cs = buscarCiclos(false);
+  if(!cs.length) return null;
+  let mejor = cs[0], mc = costoDeCiclo(cs[0]);
+  cs.forEach(c=>{ const k = costoDeCiclo(c); if(k<mc){ mc = k; mejor = c; } });
+  return { ruta: mejor, costo: mc, total: cs.length };
+}
+function respuestaLocal(q){
+  q = q.toLowerCase();
+  reconstruir();
+  const n = pos.length;
+  const faltan = () => {
+    const s = sugerir();
+    if(s.estado==='pocos') return `Aún hay ${n} ciudad(es). Necesitas al menos ${MIN_NODOS} para formar un ciclo.`;
+    if(s.estado==='ok') return 'No te falta nada: ya existe un ciclo Hamilton.';
+    if(s.estado==='imposible') return `Con el máximo de ${MAX_CONEXIONES} conexiones y las rutas actuales no se puede cerrar el ciclo. Quita o cambia alguna ruta.`;
+    return 'Para cerrar un ciclo Hamilton te falta unir: ' + s.lista.map(x=>`${et(x.a)} ${x.dir?'→':'–'} ${et(x.b)}`).join(', ') + '.';
+  };
+  if(/dirig/.test(q)) return 'En un grafo NO dirigido una ruta A–B se recorre en ambos sentidos. En uno dirigido, A → B solo va de A hacia B; para volver necesitas otra flecha B → A. Para el ciclo Hamilton, en uno dirigido debes respetar el sentido de cada flecha. En esta página: herramienta Ruta = sin dirección, Flecha = dirigida.';
+  if(/fuerza bruta|complej|factorial|permut/.test(q)) return `La fuerza bruta prueba todos los recorridos posibles: con n ciudades hay (n−1)! ordenes desde una ciudad fija. Con ${n} ciudades serían ${n>0 ? (()=>{let f=1;for(let i=2;i<n;i++)f*=i;return f;})() : 0} permutaciones. Aquí solo se exploran caminos que existen en el grafo (con máx. 3 rutas por ciudad), por eso es rápido.`;
+  if(/imagen|foto|subir|detect/.test(q)) return 'Pulsa “Imagen” en la barra, elige una foto de un grafo y luego “Detectar (beta)”. Funciona mejor con nodos redondos bien definidos y rutas rectas sobre fondo liso. No lee los pesos: se muestran como “?” y los editas tocando cada ruta con la herramienta Mover.';
+  if(/(qu[eé] es|que es|define|significa).*(hamilton|ciclo|viajero|tsp)|^hamilton/.test(q)) return 'Un ciclo Hamilton es un recorrido cerrado que pasa exactamente una vez por cada ciudad y regresa al inicio. El problema del agente viajero busca, entre todos esos ciclos, el de menor costo total.';
+  if(/falta|une|unir|sugier|complet|pista|ayuda/.test(q)) return faltan();
+  if(/mejor|[oó]ptim|costo|camino|resultado|ruta/.test(q)){
+    const m = mejorRutaActual();
+    if(!m) return n<MIN_NODOS ? 'Todavía no hay suficientes ciudades.' : 'Ahora mismo no hay ciclo Hamilton, así que no hay ruta. ' + faltan();
+    return `La mejor ruta es ${etiquetaCiclo(m.ruta)} con costo ${m.costo} (de ${m.total} ciclo(s) válidos).`;
+  }
+  if(/ciclo|hamilton|existe|hay/.test(q)){
+    if(n<MIN_NODOS) return `Todavía no: necesitas al menos ${MIN_NODOS} ciudades.`;
+    const m = mejorRutaActual();
+    return m ? `Sí, hay ${m.total} ciclo(s) Hamilton. El más barato cuesta ${m.costo}.` : 'No hay ciclo Hamilton todavía. ' + faltan();
+  }
+  return `Ahora mismo tienes ${n} ciudad(es) y ${aristas.length} ruta(s). Pregúntame: “¿hay ciclo?”, “¿qué falta?”, “mejor ruta”, “dirigido vs no dirigido” o “cómo subir una imagen”.`;
+}
+async function enviarAgente(texto){
+  const inp = $('agent-text');
+  const q = (typeof texto === 'string' ? texto : inp.value).trim();
+  if(!q) return;
+  inp.value = '';
+  agregarMsg('me', q);
+  let r = null;
+  if(AGENTE_URL){
+    try{
+      const resp = await fetch(AGENTE_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mensaje:q, grafo:estadoGrafo()})});
+      const j = await resp.json();
+      r = j.respuesta;
+    }catch(e){ r = null; }
+  }
+  agregarMsg('bot', r || respuestaLocal(q));
+}
+ 
+// ---------- inicio ----------
+setPill('construir');
+setHerramienta('nodo');
+actualizar();
+setHint(HINTS.nodo);
+</script>
+</body>
+</html>
